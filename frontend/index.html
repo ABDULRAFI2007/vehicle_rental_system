@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Rent bikes and cars at affordable prices. Browse available vehicles, view details, and contact owners directly.">
+    <title>Vehicle Rental — Rent Bikes & Cars Easily</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-brand">
+            <span class="icon">🚗</span>
+            <span>VehicleRental</span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="vehicles.html">Vehicles</a>
+            <a href="vehicles.html?type=Bike">Bikes</a>
+            <a href="vehicles.html?type=Car">Cars</a>
+            <a href="admin-login.html" class="admin-link">🔒 Admin</a>
+        </div>
+    </nav>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero" id="hero">
+        <div class="hero-content">
+            <div class="hero-badge">🏷️ Affordable Rentals</div>
+            <h1>
+                Find Your Perfect<br>
+                <span class="highlight">Rental Vehicle</span>
+            </h1>
+            <p>
+                Browse bikes and cars available for rent. View details, check prices, 
+                and contact owners directly — no booking hassle.
+            </p>
+            <div class="hero-actions">
+                <a href="vehicles.html?type=Bike" class="btn btn-primary" id="hero-bikes-btn">
+                    🏍️ Browse Bikes
+                </a>
+                <a href="vehicles.html?type=Car" class="btn btn-secondary" id="hero-cars-btn">
+                    🚗 Browse Cars
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CATEGORIES ===== -->
+    <section class="categories-section" id="categories">
+        <div class="section-header">
+            <h2>Choose a Category</h2>
+            <p>Select the type of vehicle you're looking for</p>
+        </div>
+        <div class="categories-grid">
+            <a href="vehicles.html?type=Bike" class="category-card" id="category-bike">
+                <span class="icon">🏍️</span>
+                <h3>Bikes</h3>
+                <p>Scooters, sports bikes, and more available for daily rental</p>
+                <span class="arrow">Browse Bikes →</span>
+            </a>
+            <a href="vehicles.html?type=Car" class="category-card" id="category-car">
+                <span class="icon">🚗</span>
+                <h3>Cars</h3>
+                <p>Sedans, hatchbacks, SUVs available at competitive prices</p>
+                <span class="arrow">Browse Cars →</span>
+            </a>
+        </div>
+    </section>
+
+    <!-- ===== FEATURED VEHICLES ===== -->
+    <section class="categories-section" id="featured-section">
+        <div class="section-header">
+            <h2>Featured Vehicles</h2>
+            <p>Popular vehicles available right now</p>
+        </div>
+        <div class="vehicles-grid" id="featured-grid">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+        <div style="text-align:center; margin-top: 2rem;">
+            <a href="vehicles.html" class="btn btn-secondary" id="view-all-btn">View All Vehicles →</a>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <p>© 2026 VehicleRental. Built with Java Spring Boot & ❤️</p>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script>
+        // Load featured vehicles (first 4 available)
+        async function loadFeatured() {
+            const grid = document.getElementById('featured-grid');
+            try {
+                const vehicles = await api.getAvailableVehicles();
+                const featured = vehicles.slice(0, 4);
+                if (featured.length === 0) {
+                    grid.innerHTML = `
+                        <div class="empty-state" style="grid-column:1/-1;">
+                            <span class="icon">🚫</span>
+                            <h3>No vehicles available right now</h3>
+                            <p>Check back later for new listings</p>
+                        </div>`;
+                    return;
+                }
+                grid.innerHTML = featured.map(v => createVehicleCard(v)).join('');
+            } catch (err) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <span class="icon">⚠️</span>
+                        <h3>Could not load vehicles</h3>
+                        <p>Make sure the Spring Boot backend is running on port 8080</p>
+                    </div>`;
+            }
+        }
+
+        function createVehicleCard(v) {
+            const badgeClass = v.vehicleType.toLowerCase() === 'bike' ? 'badge-bike' : 'badge-car';
+            return `
+                <div class="vehicle-card">
+                    <img src="${v.imageUrl || ''}" alt="${v.brand} ${v.model}" 
+                         class="card-image" onerror="handleImageError(this)">
+                    <span class="card-badge ${badgeClass}">${v.vehicleType}</span>
+                    <div class="card-body">
+                        <h3 class="card-title">${v.brand} ${v.model}</h3>
+                        <div class="card-info">
+                            <div class="card-info-item">
+                                <span class="icon">🔢</span>
+                                <span>${v.vehicleNumber}</span>
+                            </div>
+                            <div class="card-info-item">
+                                <span class="icon">📍</span>
+                                <span>${v.location}</span>
+                            </div>
+                            <div class="card-info-item">
+                                <span class="icon">📞</span>
+                                <span>${v.ownerPhone}</span>
+                            </div>
+                        </div>
+                        <div class="card-price">${formatPrice(v.pricePerDay)} <span>/day</span></div>
+                        <div class="card-actions">
+                            <a href="vehicle-details.html?id=${v.id}" class="btn btn-primary btn-sm">View Details</a>
+                            <a href="tel:${v.ownerPhone}" class="btn btn-success btn-sm">📞 Call Owner</a>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        loadFeatured();
+    </script>
+</body>
+</html>

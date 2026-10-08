@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Browse all available bikes and cars for rent. Filter by type, search by brand or model.">
+    <title>Browse Vehicles — Vehicle Rental</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-brand">
+            <span class="icon">🚗</span>
+            <span>VehicleRental</span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="vehicles.html" class="active">Vehicles</a>
+            <a href="vehicles.html?type=Bike">Bikes</a>
+            <a href="vehicles.html?type=Car">Cars</a>
+            <a href="admin-login.html" class="admin-link">🔒 Admin</a>
+        </div>
+    </nav>
+
+    <!-- ===== PAGE CONTENT ===== -->
+    <div class="page-wrapper">
+        <div class="container">
+            <h1 class="page-title" id="page-title">All Vehicles</h1>
+            <p class="page-subtitle" id="page-subtitle">Browse available vehicles for rent</p>
+
+            <!-- Filters -->
+            <div class="filters-bar" id="filters-bar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="search-input" placeholder="Search by brand or model..."
+                           oninput="onSearch(this.value)">
+                </div>
+                <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">All</button>
+                <button class="filter-btn" id="filter-bike" onclick="setFilter('Bike')">🏍️ Bikes</button>
+                <button class="filter-btn" id="filter-car" onclick="setFilter('Car')">🚗 Cars</button>
+            </div>
+
+            <!-- Vehicle Grid -->
+            <div class="vehicles-grid" id="vehicles-grid">
+                <div class="loading"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 VehicleRental. Built with Java Spring Boot & ❤️</p>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script>
+        let allVehicles = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        // Check URL params for type filter
+        const urlParams = new URLSearchParams(window.location.search);
+        const typeParam = urlParams.get('type');
+
+        async function loadVehicles() {
+            const grid = document.getElementById('vehicles-grid');
+            try {
+                allVehicles = await api.getAvailableVehicles();
+
+                if (typeParam) {
+                    setFilter(typeParam);
+                } else {
+                    renderVehicles();
+                }
+            } catch (err) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <span class="icon">⚠️</span>
+                        <h3>Could not load vehicles</h3>
+                        <p>Make sure the Spring Boot backend is running on port 8080</p>
+                    </div>`;
+            }
+        }
+
+        function setFilter(type) {
+            currentFilter = type;
+            // Update active button
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            if (type === 'all') {
+                document.getElementById('filter-all').classList.add('active');
+                document.getElementById('page-title').textContent = 'All Vehicles';
+            } else if (type.toLowerCase() === 'bike') {
+                document.getElementById('filter-bike').classList.add('active');
+                document.getElementById('page-title').textContent = 'Bikes for Rent';
+            } else if (type.toLowerCase() === 'car') {
+                document.getElementById('filter-car').classList.add('active');
+                document.getElementById('page-title').textContent = 'Cars for Rent';
+            }
+            renderVehicles();
+        }
+
+        function onSearch(query) {
+            searchQuery = query.toLowerCase().trim();
+            renderVehicles();
+        }
+
+        function renderVehicles() {
+            const grid = document.getElementById('vehicles-grid');
+            let filtered = allVehicles;
+
+            // Filter by type
+            if (currentFilter !== 'all') {
+                filtered = filtered.filter(v =>
+                    v.vehicleType.toLowerCase() === currentFilter.toLowerCase()
+                );
+            }
+
+            // Filter by search
+            if (searchQuery) {
+                filtered = filtered.filter(v =>
+                    v.brand.toLowerCase().includes(searchQuery) ||
+                    v.model.toLowerCase().includes(searchQuery) ||
+                    v.location.toLowerCase().includes(searchQuery) ||
+                    v.vehicleNumber.toLowerCase().includes(searchQuery)
+                );
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="empty-state" style="grid-column:1/-1;">
+                        <span class="icon">🔍</span>
+                        <h3>No vehicles found</h3>
+                        <p>Try adjusting your search or filters</p>
+                    </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(v => {
+                const badgeClass = v.vehicleType.toLowerCase() === 'bike' ? 'badge-bike' : 'badge-car';
+                return `
+                    <div class="vehicle-card">
+                        <img src="${v.imageUrl || ''}" alt="${v.brand} ${v.model}" 
+                             class="card-image" onerror="handleImageError(this)">
+                        <span class="card-badge ${badgeClass}">${v.vehicleType}</span>
+                        <div class="card-body">
+                            <h3 class="card-title">${v.brand} ${v.model}</h3>
+                            <div class="card-info">
+                                <div class="card-info-item">
+                                    <span class="icon">🔢</span>
+                                    <span>${v.vehicleNumber}</span>
+                                </div>
+                                <div class="card-info-item">
+                                    <span class="icon">📍</span>
+                                    <span>${v.location}</span>
+                                </div>
+                                <div class="card-info-item">
+                                    <span class="icon">📞</span>
+                                    <span>${v.ownerPhone}</span>
+                                </div>
+                            </div>
+                            <div class="card-price">${formatPrice(v.pricePerDay)} <span>/day</span></div>
+                            <div class="card-actions">
+                                <a href="vehicle-details.html?id=${v.id}" class="btn btn-primary btn-sm">View Details</a>
+                                <a href="tel:${v.ownerPhone}" class="btn btn-success btn-sm">📞 Call Owner</a>
+                            </div>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        loadVehicles();
+    </script>
+</body>
+</html>

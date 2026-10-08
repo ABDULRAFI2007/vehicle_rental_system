@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="View complete vehicle details including price, location, and owner contact information.">
+    <title>Vehicle Details — Vehicle Rental</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-brand">
+            <span class="icon">🚗</span>
+            <span>VehicleRental</span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="vehicles.html">Vehicles</a>
+            <a href="vehicles.html?type=Bike">Bikes</a>
+            <a href="vehicles.html?type=Car">Cars</a>
+            <a href="admin-login.html" class="admin-link">🔒 Admin</a>
+        </div>
+    </nav>
+
+    <!-- ===== DETAILS ===== -->
+    <div class="details-page">
+        <div class="details-container" id="details-container">
+            <div class="loading"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>© 2026 VehicleRental. Built with Java Spring Boot & ❤️</p>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const vehicleId = urlParams.get('id');
+
+        async function loadDetails() {
+            const container = document.getElementById('details-container');
+
+            if (!vehicleId) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="icon">⚠️</span>
+                        <h3>No vehicle selected</h3>
+                        <p><a href="vehicles.html" style="color:var(--primary-light)">Browse vehicles</a></p>
+                    </div>`;
+                return;
+            }
+
+            try {
+                const v = await api.getVehicleById(vehicleId);
+                const badgeClass = v.vehicleType.toLowerCase() === 'bike' ? 'badge-bike' : 'badge-car';
+                const availClass = v.available ? 'badge-available' : 'badge-unavailable';
+                const availText = v.available ? 'Available' : 'Unavailable';
+
+                document.title = `${v.brand} ${v.model} — Vehicle Rental`;
+
+                container.innerHTML = `
+                    <a href="vehicles.html" class="details-back">← Back to vehicles</a>
+
+                    <div class="details-card">
+                        <img src="${v.imageUrl || ''}" alt="${v.brand} ${v.model}" 
+                             class="details-image" onerror="handleImageError(this)">
+                        
+                        <div class="details-body">
+                            <div class="details-header">
+                                <div>
+                                    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+                                        <span class="card-badge ${badgeClass}" style="position:static">${v.vehicleType}</span>
+                                        <span class="card-badge ${availClass}" style="position:static">${availText}</span>
+                                    </div>
+                                    <h1>${v.brand} ${v.model}</h1>
+                                </div>
+                                <div class="details-price">
+                                    ${formatPrice(v.pricePerDay)} <span>/day</span>
+                                </div>
+                            </div>
+
+                            <div class="details-grid">
+                                <div class="detail-item">
+                                    <div class="icon">🔢</div>
+                                    <div class="info">
+                                        <label>Vehicle Number</label>
+                                        <p>${v.vehicleNumber}</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="icon">🏷️</div>
+                                    <div class="info">
+                                        <label>Brand</label>
+                                        <p>${v.brand}</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="icon">📋</div>
+                                    <div class="info">
+                                        <label>Model</label>
+                                        <p>${v.model}</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="icon">💰</div>
+                                    <div class="info">
+                                        <label>Rental Price</label>
+                                        <p>${formatPrice(v.pricePerDay)} per day</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="icon">📍</div>
+                                    <div class="info">
+                                        <label>Rental Location</label>
+                                        <p>${v.location}</p>
+                                    </div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="icon">📞</div>
+                                    <div class="info">
+                                        <label>Owner Phone</label>
+                                        <p>${v.ownerPhone}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="details-actions">
+                                <a href="tel:${v.ownerPhone}" class="btn btn-success" id="btn-call-owner">
+                                    📞 Contact Owner
+                                </a>
+                                <a href="https://wa.me/91${v.ownerPhone}?text=Hi, I'm interested in renting your ${v.brand} ${v.model} (${v.vehicleNumber})" 
+                                   target="_blank" class="btn btn-primary" id="btn-whatsapp">
+                                    💬 WhatsApp
+                                </a>
+                                <a href="vehicles.html" class="btn btn-outline" id="btn-back-browse">
+                                    ← Browse More
+                                </a>
+                            </div>
+                        </div>
+                    </div>`;
+
+            } catch (err) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span class="icon">⚠️</span>
+                        <h3>Vehicle not found</h3>
+                        <p>The vehicle may have been removed. <a href="vehicles.html" style="color:var(--primary-light)">Browse vehicles</a></p>
+                    </div>`;
+            }
+        }
+
+        loadDetails();
+    </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Add a new vehicle to the rental listing.">
+    <title>Add Vehicle — Vehicle Rental Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <a href="index.html" class="nav-brand">
+            <span class="icon">🚗</span>
+            <span>VehicleRental</span>
+        </a>
+        <button class="nav-toggle" onclick="toggleNav()" aria-label="Toggle navigation">☰</button>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="admin-dashboard.html">Dashboard</a>
+            <a href="#" onclick="adminLogout()" class="admin-link" style="background:rgba(255,107,107,0.15);color:var(--danger);border-color:rgba(255,107,107,0.3);">
+                🚪 Logout
+            </a>
+        </div>
+    </nav>
+
+    <!-- ===== ADD VEHICLE FORM ===== -->
+    <div class="form-page">
+        <div class="container">
+            <div class="form-card">
+                <h2>➕ Add New Vehicle</h2>
+                <p class="form-subtitle">Fill in the details to add a new vehicle listing</p>
+
+                <form id="add-vehicle-form" onsubmit="handleAddVehicle(event)">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vehicleType">Vehicle Type *</label>
+                            <select id="vehicleType" class="form-control" required>
+                                <option value="">Select Type</option>
+                                <option value="Bike">Bike</option>
+                                <option value="Car">Car</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="brand">Brand *</label>
+                            <input type="text" id="brand" class="form-control" placeholder="e.g. Honda" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="model">Model *</label>
+                            <input type="text" id="model" class="form-control" placeholder="e.g. Activa 6G" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleNumber">Vehicle Number *</label>
+                            <input type="text" id="vehicleNumber" class="form-control" placeholder="e.g. TN-45-AB-1234" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="pricePerDay">Price Per Day (₹) *</label>
+                            <input type="number" id="pricePerDay" class="form-control" placeholder="e.g. 500" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ownerPhone">Owner Phone *</label>
+                            <input type="tel" id="ownerPhone" class="form-control" placeholder="e.g. 9876543210" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Rental Location *</label>
+                        <input type="text" id="location" class="form-control" placeholder="e.g. Kattur, Trichy" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="imageUrl">Image URL</label>
+                        <input type="url" id="imageUrl" class="form-control" 
+                               placeholder="https://example.com/vehicle-image.jpg"
+                               oninput="previewImage(this.value)">
+                        <img id="image-preview" class="image-preview" alt="Preview" onerror="this.classList.remove('show')">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="available" checked> 
+                            Mark as Available
+                        </label>
+                    </div>
+
+                    <div id="form-error" class="form-error"></div>
+
+                    <div class="form-actions">
+                        <a href="admin-dashboard.html" class="btn btn-outline">Cancel</a>
+                        <button type="submit" class="btn btn-primary" id="submit-btn">
+                            ➕ Add Vehicle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        if (!requireAdmin()) throw new Error('Not authenticated');
+
+        function previewImage(url) {
+            const preview = document.getElementById('image-preview');
+            if (url) {
+                preview.src = url;
+                preview.classList.add('show');
+            } else {
+                preview.classList.remove('show');
+            }
+        }
+
+        async function handleAddVehicle(e) {
+            e.preventDefault();
+            const errorEl = document.getElementById('form-error');
+            const btn = document.getElementById('submit-btn');
+            errorEl.textContent = '';
+
+            const vehicleData = {
+                vehicleType: document.getElementById('vehicleType').value,
+                brand: document.getElementById('brand').value.trim(),
+                model: document.getElementById('model').value.trim(),
+                vehicleNumber: document.getElementById('vehicleNumber').value.trim(),
+                pricePerDay: parseFloat(document.getElementById('pricePerDay').value),
+                ownerPhone: document.getElementById('ownerPhone').value.trim(),
+                location: document.getElementById('location').value.trim(),
+                imageUrl: document.getElementById('imageUrl').value.trim(),
+                available: document.getElementById('available').checked
+            };
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Adding...';
+
+            try {
+                await api.addVehicle(vehicleData);
+                showToast('Vehicle added successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'admin-dashboard.html';
+                }, 800);
+            } catch (err) {
+                errorEl.textContent = err.message || 'Failed to add vehicle';
+                btn.disabled = false;
+                btn.innerHTML = '➕ Add Vehicle';
+            }
+        }
+    </script>
+</body>
+</html>
